@@ -551,12 +551,7 @@
           <form class="auth-form" id="authEmailForm">
             <input type="email" id="authEmail" inputmode="email" autocomplete="email"
                    placeholder="you@example.com" aria-label="Email address" required />
-            <button type="submit" class="btn auth-btn" id="authSendBtn">Email me a code</button>
-          </form>
-          <form class="auth-form" id="authCodeForm" hidden>
-            <input type="text" id="authCode" inputmode="numeric" autocomplete="one-time-code"
-                   pattern="[0-9]*" maxlength="8" placeholder="6-digit code" aria-label="Login code" required />
-            <button type="submit" class="btn auth-btn" id="authVerifyBtn">Verify</button>
+            <button type="submit" class="btn auth-btn" id="authSendBtn">Email me a link</button>
           </form>
           <p class="auth-msg" id="authMsg" role="status" aria-live="polite"></p>
         </div>
@@ -1315,11 +1310,10 @@
     authRow.hidden = false;
 
     const signedOut = $("#authSignedOut"), signedIn = $("#authSignedIn");
-    const emailForm = $("#authEmailForm"), codeForm = $("#authCodeForm");
-    const emailInput = $("#authEmail"), codeInput = $("#authCode");
-    const sendBtn = $("#authSendBtn"), verifyBtn = $("#authVerifyBtn");
+    const emailForm = $("#authEmailForm");
+    const emailInput = $("#authEmail");
+    const sendBtn = $("#authSendBtn");
     const msg = $("#authMsg"), who = $("#authWho"), signOutBtn = $("#authSignOut");
-    let pendingEmail = "";
 
     const setMsg = (text, kind) => { msg.textContent = text || ""; msg.className = "auth-msg" + (kind ? " " + kind : ""); };
 
@@ -1330,30 +1324,20 @@
       if (inUser) who.textContent = authUser.email || "your account";
     }
 
+    // Magic-link sign-in: email a link that redirects back here, where supabase-js
+    // (detectSessionInUrl, on by default) reads the tokens from the URL and signs in.
     emailForm.addEventListener("submit", async e => {
       e.preventDefault();
-      pendingEmail = emailInput.value.trim();
-      if (!pendingEmail) return;
+      const email = emailInput.value.trim();
+      if (!email) return;
       sendBtn.disabled = true; setMsg("Sending…");
-      const { error } = await sb.auth.signInWithOtp({ email: pendingEmail, options: { shouldCreateUser: true } });
+      const { error } = await sb.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: true, emailRedirectTo: window.location.origin + window.location.pathname }
+      });
       sendBtn.disabled = false;
       if (error){ setMsg(error.message, "error"); return; }
-      emailForm.hidden = true; codeForm.hidden = false;
-      setMsg("Check your email for a 6-digit code.", "ok");
-      codeInput.focus();
-    });
-
-    codeForm.addEventListener("submit", async e => {
-      e.preventDefault();
-      const token = codeInput.value.trim();
-      if (!token) return;
-      verifyBtn.disabled = true; setMsg("Verifying…");
-      const { error } = await sb.auth.verifyOtp({ email: pendingEmail, token, type: "email" });
-      verifyBtn.disabled = false;
-      if (error){ setMsg(error.message, "error"); return; }
-      setMsg(""); codeForm.hidden = true; emailForm.hidden = false;
-      codeInput.value = ""; emailInput.value = "";
-      // onAuthStateChange handles the rest (authUser + sync)
+      setMsg("Check your email and click the sign-in link. You'll be signed in when you return here.", "ok");
     });
 
     signOutBtn.addEventListener("click", async () => {
