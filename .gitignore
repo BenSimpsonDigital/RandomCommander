@@ -1,0 +1,7 @@
+# Local Claude Code settings (keep launch.json out of the repo too — it's machine-specific)
+.claude/
+.DS_Store
+
+# Env / secrets (none committed; Supabase anon key is public and lives in index.html)
+.env
+.env.*
