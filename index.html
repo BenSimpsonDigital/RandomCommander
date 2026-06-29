@@ -90,6 +90,24 @@
   .row{display:flex;flex-wrap:wrap;gap:clamp(20px,3vw,40px);align-items:flex-start}
   .field{display:flex;flex-direction:column;gap:12px;min-width:0}
   .field.grow{flex:1 1 360px}
+  /* Filter console laid out on a 6-col grid so every row fills the full width */
+  .console-grid{display:grid;grid-template-columns:repeat(6,1fr);
+    column-gap:clamp(20px,3vw,40px);row-gap:clamp(20px,2.6vw,30px);align-items:start}
+  .gi-colors{grid-column:span 3}
+  .gi-power{grid-column:span 3}
+  .gi-format{grid-column:span 2}
+  .gi-count{grid-column:span 2}
+  .gi-partners{grid-column:span 2}
+  .gi-mv{grid-column:span 3}
+  .gi-price{grid-column:span 3}
+  .gi-theme{grid-column:1 / -1}
+  /* subtle vertical rules between columns, echoing the old dividers */
+  .col-div{border-left:1px solid var(--line-soft);padding-left:clamp(16px,2vw,30px)}
+  @media(max-width:760px){
+    .console-grid{grid-template-columns:1fr}
+    .console-grid > .field{grid-column:1 / -1}
+    .col-div{border-left:none;padding-left:0}
+  }
   .label{font-size:.68rem;letter-spacing:.26em;text-transform:uppercase;color:var(--parchment-faint);
     font-weight:600;display:flex;align-items:center;gap:10px}
   .label .count{color:var(--gold);letter-spacing:.05em}
@@ -117,7 +135,6 @@
   .pip[data-c="g"][aria-pressed="true"]{--ring:rgba(63,158,99,.7)}
   .pip:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 
-  .divider-v{width:1px;align-self:stretch;background:var(--line-soft);margin:0 4px}
 
   /* small toggles / segmented */
   .toggle{display:inline-flex;align-items:center;gap:9px;cursor:pointer;font-size:.82rem;color:var(--parchment-dim);user-select:none}
@@ -130,8 +147,8 @@
   .toggle input:checked + .switch::after{transform:translateX(17px);background:var(--gold)}
   .toggle input:focus-visible + .switch{outline:2px solid var(--gold);outline-offset:2px}
 
-  .seg{display:inline-flex;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:rgba(0,0,0,.2)}
-  .seg button{appearance:none;border:none;background:transparent;color:var(--parchment-dim);
+  .seg{display:flex;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:rgba(0,0,0,.2)}
+  .seg button{flex:1;text-align:center;white-space:nowrap;appearance:none;border:none;background:transparent;color:var(--parchment-dim);
     font-family:var(--sans);font-size:.78rem;font-weight:600;padding:9px 14px;cursor:pointer;
     transition:color .2s,background .2s;letter-spacing:.02em}
   .seg button + button{border-left:1px solid var(--line)}
@@ -350,7 +367,7 @@
   .msg.error{color:#e0917f}
 
   /* range sliders */
-  .range{width:100%;max-width:230px;accent-color:var(--gold);cursor:pointer;height:22px;margin-top:2px}
+  .range{width:100%;max-width:340px;accent-color:var(--gold);cursor:pointer;height:22px;margin-top:2px}
   .range:focus-visible{outline:2px solid var(--gold);outline-offset:4px;border-radius:4px}
 
 
@@ -443,8 +460,8 @@
     <div class="console-wrap" id="consoleWrap">
      <div class="console-inner">
     <section class="console" aria-label="Filters">
-      <div class="row">
-        <div class="field">
+      <div class="console-grid">
+        <div class="field gi-colors">
           <span class="label">Colors <span class="count" id="colorCount"></span></span>
           <div class="pips" id="pips" role="group" aria-label="Color identity">
             <button class="pip" data-c="w" aria-pressed="false" aria-label="White" title="White">W</button>
@@ -460,9 +477,7 @@
           </label>
         </div>
 
-        <div class="divider-v" aria-hidden="true"></div>
-
-        <div class="field">
+        <div class="field gi-power col-div">
           <span class="label">Power Bias</span>
           <div class="seg" id="power" role="group" aria-label="Power bias">
             <button data-v="any" aria-pressed="true">Surprise me</button>
@@ -470,10 +485,8 @@
           </div>
           <span class="rank-tag" id="powerNote">Anything legal, dealt at random.</span>
         </div>
-      </div>
 
-      <div class="row" style="margin-top:24px">
-        <div class="field">
+        <div class="field gi-format">
           <span class="label">Format</span>
           <div class="seg" id="format" role="group" aria-label="Format">
             <button data-v="commander" aria-pressed="true">Commander</button>
@@ -481,9 +494,7 @@
           </div>
         </div>
 
-        <div class="divider-v" aria-hidden="true"></div>
-
-        <div class="field">
+        <div class="field gi-count col-div">
           <span class="label">Colour count</span>
           <div class="seg" id="colorCountSeg" role="group" aria-label="Colour count">
             <button data-v="any" aria-pressed="true">Any</button>
@@ -493,9 +504,7 @@
           </div>
         </div>
 
-        <div class="divider-v" aria-hidden="true"></div>
-
-        <div class="field">
+        <div class="field gi-partners col-div">
           <span class="label">Partners</span>
           <label class="toggle" style="margin-top:8px">
             <input type="checkbox" id="partners" />
@@ -503,21 +512,18 @@
             <span>Partners only</span>
           </label>
         </div>
-      </div>
 
-      <div class="row" style="margin-top:24px">
-        <div class="field">
+        <div class="field gi-mv">
           <span class="label">Commander MV <span class="count" id="mvVal">· any</span></span>
           <input type="range" class="range" id="mv" min="1" max="9" step="1" value="9" aria-label="Maximum mana value" />
         </div>
-        <div class="field">
+
+        <div class="field gi-price col-div">
           <span class="label">Max price <span class="count" id="priceVal">· any</span></span>
           <input type="range" class="range" id="price" min="1" max="50" step="1" value="50" aria-label="Maximum price in dollars" />
         </div>
-      </div>
 
-      <div class="row" style="margin-top:24px">
-        <div class="field grow">
+        <div class="field grow gi-theme">
           <span class="label">Theme</span>
           <div class="chips" id="themes" role="group" aria-label="Theme"></div>
           <div class="subpicker" id="tribePicker" role="group" aria-label="Creature type"></div>
