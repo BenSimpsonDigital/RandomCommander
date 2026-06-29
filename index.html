@@ -192,7 +192,13 @@
   .hint{text-align:center;color:var(--parchment-faint);font-size:.8rem;margin-top:14px;letter-spacing:.02em}
 
   /* ---------- refine toggle + collapsible console ---------- */
-  .refine-row{display:flex;justify-content:center;margin-top:20px}
+  .refine-row{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:20px;flex-wrap:wrap}
+  .saved-pill{appearance:none;background:rgba(255,255,255,.02);border:1px solid rgba(201,162,75,.4);
+    color:var(--gold-soft);font-family:var(--sans);font-size:.8rem;font-weight:600;letter-spacing:.02em;
+    padding:9px 16px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+    transition:all .2s var(--ease)}
+  .saved-pill:hover{color:var(--gold);border-color:var(--gold);background:rgba(201,162,75,.1)}
+  .saved-pill:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   .refine{appearance:none;background:rgba(255,255,255,.02);border:1px solid var(--line);
     color:var(--parchment-dim);font-family:var(--sans);font-size:.8rem;font-weight:600;
     letter-spacing:.02em;padding:9px 8px 9px 16px;border-radius:999px;cursor:pointer;
@@ -342,7 +348,6 @@
   .hist-btn:hover:not(:disabled){color:var(--parchment);border-color:rgba(201,162,75,.4)}
   .hist-btn:disabled{opacity:.3;cursor:default}
   .hist-btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
-  .hist-spacer{flex:1}
   #savedBtn{color:var(--gold-soft);border-color:rgba(201,162,75,.4)}
 
   .btn.is-saved{background:rgba(201,162,75,.16);border-color:var(--gold);color:var(--gold-soft)}
@@ -427,6 +432,7 @@
         <span class="r-summary" id="refineSummary">Any colors · Surprise me · Any theme</span>
         <span class="caret" aria-hidden="true">▾</span>
       </button>
+      <button class="saved-pill" id="savedBtn" aria-haspopup="dialog">♥ Saved <span id="savedCount">(0)</span></button>
     </div>
 
     <!-- ============ FILTER CONSOLE (collapsible) ============ -->
@@ -517,12 +523,10 @@
      </div>
     </div>
 
-    <!-- history bar lives outside the stage so the Saved button is reachable before any deal -->
+    <!-- session history (Prev/Next); the Saved button now lives up in the refine row -->
     <div class="histbar" id="histbar" hidden>
       <button class="hist-btn" id="prevBtn" aria-label="Previous commander">‹ Prev</button>
       <button class="hist-btn" id="nextBtn" aria-label="Next commander">Next ›</button>
-      <span class="hist-spacer"></span>
-      <button class="hist-btn" id="savedBtn" aria-haspopup="dialog">♥ Saved <span id="savedCount">(0)</span></button>
     </div>
 
     <!-- ============ STAGE ============ -->
@@ -1222,8 +1226,8 @@
 
   function updateSavedCount(){ savedCountEl.textContent = `(${loadSaved().length})`; }
   function refreshHistBar(){
-    // show the bar once there's history OR saved commanders to reach
-    histbar.hidden = state.history.length === 0 && loadSaved().length === 0;
+    // Prev/Next only matter once something's been dealt; the Saved button lives in the refine row now
+    histbar.hidden = state.history.length === 0;
     prevBtn.hidden = nextBtn.hidden = state.history.length === 0; // hide nav until something's been dealt
     prevBtn.disabled = state.histIndex <= 0;
     nextBtn.disabled = state.histIndex >= state.history.length - 1;
