@@ -361,6 +361,27 @@
     width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:.85rem;flex:none}
   .drawer-close:hover{color:var(--parchment);border-color:rgba(242,235,221,.25)}
   .drawer-close:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  /* auth row inside the saved drawer */
+  .auth-row{margin:-6px 0 20px;padding:14px;border:1px solid var(--line);border-radius:10px;
+    background:rgba(255,255,255,.02)}
+  .auth-row[hidden]{display:none}
+  .auth-blurb{margin:0 0 10px;font-size:.82rem;color:var(--parchment-dim);line-height:1.4}
+  .auth-form{display:flex;gap:8px}
+  .auth-form[hidden]{display:none}
+  .auth-form input{flex:1;min-width:0;padding:8px 10px;border-radius:7px;border:1px solid var(--line);
+    background:rgba(8,7,11,.5);color:var(--parchment);font:inherit;font-size:.85rem}
+  .auth-form input:focus-visible{outline:2px solid var(--gold);outline-offset:1px;border-color:transparent}
+  .auth-btn{flex:none;white-space:nowrap;padding:8px 12px;font-size:.82rem}
+  .auth-msg{margin:10px 0 0;font-size:.78rem;color:var(--parchment-dim);line-height:1.4;min-height:1px}
+  .auth-msg.error{color:#e0917f}
+  .auth-msg.ok{color:var(--gold-soft)}
+  .auth-signedin{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .auth-signedin[hidden]{display:none}
+  .auth-who{font-size:.82rem;color:var(--parchment-dim)}
+  .auth-who strong{color:var(--parchment);font-weight:600}
+  .auth-link{appearance:none;background:none;border:none;cursor:pointer;font:inherit;font-size:.8rem;
+    color:var(--gold-soft);text-decoration:underline;text-underline-offset:2px;padding:2px}
+  .auth-link:hover{color:var(--gold)}
   .drawer-body{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:14px}
   .saved-tile{position:relative;cursor:pointer}
   .saved-tile img{width:100%;aspect-ratio:488/680;border-radius:7px;display:block;background:#1a1822;
@@ -382,6 +403,9 @@
     .card-shell.dealt .card-img{transform:rotate(-3deg)}
   }
 </style>
+<!-- Supabase client (optional cloud sync for saved commanders). Safe to load; the app
+     degrades gracefully to localStorage-only if this fails or isn't configured. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 </head>
 <body>
   <div class="bg"></div>
@@ -520,6 +544,27 @@
         <h3>Saved commanders</h3>
         <button class="drawer-close" id="drawerClose" aria-label="Close">✕</button>
       </div>
+      <!-- Auth row: hidden entirely unless Supabase is configured -->
+      <div class="auth-row" id="authRow" hidden>
+        <div class="auth-signedout" id="authSignedOut">
+          <p class="auth-blurb">Sign in to sync saved commanders across devices.</p>
+          <form class="auth-form" id="authEmailForm">
+            <input type="email" id="authEmail" inputmode="email" autocomplete="email"
+                   placeholder="you@example.com" aria-label="Email address" required />
+            <button type="submit" class="btn auth-btn" id="authSendBtn">Email me a code</button>
+          </form>
+          <form class="auth-form" id="authCodeForm" hidden>
+            <input type="text" id="authCode" inputmode="numeric" autocomplete="one-time-code"
+                   pattern="[0-9]*" maxlength="8" placeholder="6-digit code" aria-label="Login code" required />
+            <button type="submit" class="btn auth-btn" id="authVerifyBtn">Verify</button>
+          </form>
+          <p class="auth-msg" id="authMsg" role="status" aria-live="polite"></p>
+        </div>
+        <div class="auth-signedin" id="authSignedIn" hidden>
+          <span class="auth-who">Synced as <strong id="authWho"></strong></span>
+          <button class="auth-link" id="authSignOut" type="button">Sign out</button>
+        </div>
+      </div>
       <div class="drawer-body" id="drawerBody"></div>
     </div>
   </div>
@@ -607,17 +652,71 @@
   };
   const pairCache = new Map();
 
-  // ---------- saved commanders (localStorage) ----------
+  // ---------- Supabase cloud sync (optional) ----------
+  // Paste your project's values here to turn on cross-device sync. Both are safe to
+  // expose publicly: the anon key only permits what Row Level Security allows, and the
+  // saved_commanders table restricts every row to its owner (auth.uid() = user_id).
+  const SUPABASE_URL = "YOUR_SUPABASE_URL";        // e.g. https://abcd1234.supabase.co
+  const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+  const SUPA_ON = SUPABASE_URL.startsWith("http") && SUPABASE_ANON_KEY.length > 20 && !!window.supabase;
+  const sb = SUPA_ON ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+  let authUser = null; // current signed-in user (or null)
+
+  // ---------- saved commanders (localStorage cache; mirrored to Supabase when signed in) ----------
   const SAVE_KEY = "rcf:saved:v1";
   function loadSaved(){ try { return JSON.parse(localStorage.getItem(SAVE_KEY)) || []; } catch (e){ return []; } }
   function persistSaved(list){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(list)); } catch (e){} }
   function isSaved(id){ return loadSaved().some(c => c.id === id); }
   function toggleSave(card){
     let list = loadSaved();
-    if (list.some(c => c.id === card.id)) list = list.filter(c => c.id !== card.id);
+    const wasSaved = list.some(c => c.id === card.id);
+    if (wasSaved) list = list.filter(c => c.id !== card.id);
     else { list.push(card); if (list.length > 100) list = list.slice(-100); }
     persistSaved(list);
-    return list.some(c => c.id === card.id); // → now saved?
+    const nowSaved = list.some(c => c.id === card.id);
+    if (authUser){ nowSaved ? remoteUpsert(card) : remoteDelete(card.id); } // fire-and-forget
+    return nowSaved;
+  }
+  // Remote helpers — best-effort; failures leave the local cache intact.
+  async function remoteUpsert(card){
+    if (!sb || !authUser) return;
+    try { await sb.from("saved_commanders")
+      .upsert({ user_id: authUser.id, card_id: card.id, card }, { onConflict: "user_id,card_id" }); }
+    catch (e){ console.warn("sync upsert failed", e); }
+  }
+  async function remoteDelete(id){
+    if (!sb || !authUser) return;
+    try { await sb.from("saved_commanders").delete().eq("user_id", authUser.id).eq("card_id", id); }
+    catch (e){ console.warn("sync delete failed", e); }
+  }
+  // On sign-in: union the remote rows with whatever's in the local cache, then push the
+  // merged set back up so both ends converge. Last writer per id doesn't matter — saves
+  // are add/remove, and a union is the safe merge for "things I favourited".
+  async function syncOnSignIn(){
+    if (!sb || !authUser) return;
+    try {
+      const { data, error } = await sb.from("saved_commanders")
+        .select("card_id, card, created_at").eq("user_id", authUser.id);
+      if (error) throw error;
+      const remote = (data || []).map(r => r.card).filter(Boolean);
+      const local = loadSaved();
+      const byId = new Map();
+      remote.forEach(c => byId.set(c.id, c));
+      local.forEach(c => { if (!byId.has(c.id)) byId.set(c.id, c); }); // keep local-only adds
+      const merged = Array.from(byId.values());
+      persistSaved(merged);
+      // push any local-only cards up to the server
+      const remoteIds = new Set(remote.map(c => c.id));
+      const toPush = merged.filter(c => !remoteIds.has(c.id));
+      if (toPush.length){
+        await sb.from("saved_commanders").upsert(
+          toPush.map(c => ({ user_id: authUser.id, card_id: c.id, card: c })),
+          { onConflict: "user_id,card_id" });
+      }
+      updateSavedCount();
+      refreshHistBar();
+      if (!drawerOverlay.hidden) openDrawer();
+    } catch (e){ console.warn("initial sync failed", e); }
   }
 
   // ---------- build theme chips ----------
@@ -1192,8 +1291,9 @@
       e.stopPropagation();
       const id = rm.dataset.id;
       persistSaved(loadSaved().filter(c => c.id !== id));
-      const sb = $("#saveBtn");
-      if (sb && state.commander && state.commander.id === id){ sb.textContent = "♡ Save"; sb.classList.remove("is-saved"); }
+      if (authUser) remoteDelete(id);
+      const saveBtnEl = $("#saveBtn");
+      if (saveBtnEl && state.commander && state.commander.id === id){ saveBtnEl.textContent = "♡ Save"; saveBtnEl.classList.remove("is-saved"); }
       updateSavedCount();
       openDrawer();
       return;
@@ -1207,6 +1307,68 @@
     }
   });
   refreshHistBar(); // reveal the Saved button on load if there are saved commanders
+
+  // ---------- auth (email one-time code via Supabase) ----------
+  (function initAuth(){
+    const authRow = $("#authRow");
+    if (!SUPA_ON){ authRow.hidden = true; return; } // no Supabase configured → localStorage only
+    authRow.hidden = false;
+
+    const signedOut = $("#authSignedOut"), signedIn = $("#authSignedIn");
+    const emailForm = $("#authEmailForm"), codeForm = $("#authCodeForm");
+    const emailInput = $("#authEmail"), codeInput = $("#authCode");
+    const sendBtn = $("#authSendBtn"), verifyBtn = $("#authVerifyBtn");
+    const msg = $("#authMsg"), who = $("#authWho"), signOutBtn = $("#authSignOut");
+    let pendingEmail = "";
+
+    const setMsg = (text, kind) => { msg.textContent = text || ""; msg.className = "auth-msg" + (kind ? " " + kind : ""); };
+
+    function renderAuth(){
+      const inUser = !!authUser;
+      signedIn.hidden = !inUser;
+      signedOut.hidden = inUser;
+      if (inUser) who.textContent = authUser.email || "your account";
+    }
+
+    emailForm.addEventListener("submit", async e => {
+      e.preventDefault();
+      pendingEmail = emailInput.value.trim();
+      if (!pendingEmail) return;
+      sendBtn.disabled = true; setMsg("Sending…");
+      const { error } = await sb.auth.signInWithOtp({ email: pendingEmail, options: { shouldCreateUser: true } });
+      sendBtn.disabled = false;
+      if (error){ setMsg(error.message, "error"); return; }
+      emailForm.hidden = true; codeForm.hidden = false;
+      setMsg("Check your email for a 6-digit code.", "ok");
+      codeInput.focus();
+    });
+
+    codeForm.addEventListener("submit", async e => {
+      e.preventDefault();
+      const token = codeInput.value.trim();
+      if (!token) return;
+      verifyBtn.disabled = true; setMsg("Verifying…");
+      const { error } = await sb.auth.verifyOtp({ email: pendingEmail, token, type: "email" });
+      verifyBtn.disabled = false;
+      if (error){ setMsg(error.message, "error"); return; }
+      setMsg(""); codeForm.hidden = true; emailForm.hidden = false;
+      codeInput.value = ""; emailInput.value = "";
+      // onAuthStateChange handles the rest (authUser + sync)
+    });
+
+    signOutBtn.addEventListener("click", async () => {
+      await sb.auth.signOut();
+      setMsg("");
+    });
+
+    // Single source of truth for session state: fires on load, sign-in and sign-out.
+    sb.auth.onAuthStateChange((_event, session) => {
+      const prevId = authUser && authUser.id;
+      authUser = session ? session.user : null;
+      renderAuth();
+      if (authUser && authUser.id !== prevId) syncOnSignIn();
+    });
+  })();
 
   // ---------- deal flow ----------
   const dealBtn = $("#dealBtn");
