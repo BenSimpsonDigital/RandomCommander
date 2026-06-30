@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Font picker · Random Commander Finder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<!-- preload every candidate so switching is instant -->
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700&family=Cinzel:wght@400;600;700&family=Playfair+Display:wght@400;600;700&family=Cormorant+Garamond:wght@400;600;700&family=Jost:wght@400;500;600&family=Spectral:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Marcellus&family=Mulish:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --void:#0E0D12; --void-2:#16141d; --ink:#08070b;
+    --parchment:#F2EBDD; --parchment-dim:#b9b2a4; --parchment-faint:#7a7568;
+    --gold:#C9A24B; --gold-soft:#e0c47e; --gold-deep:#8a6c2a;
+    --line:rgba(201,162,75,.18); --line-soft:rgba(242,235,221,.08);
+    --r:#cf4338;
+    --ease:cubic-bezier(.2,.7,.2,1);
+    /* swapped by the picker */
+    --serif:"Fraunces", Georgia, serif;
+    --sans:"Hanken Grotesk", system-ui, sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:
+      radial-gradient(120% 90% at 50% -10%, #20182c 0%, rgba(32,24,44,0) 55%),
+      var(--void);
+    color:var(--parchment);font-family:var(--sans);line-height:1.55;min-height:100vh;
+    -webkit-font-smoothing:antialiased}
+
+  /* ---- picker toolbar ---- */
+  .picker{position:sticky;top:0;z-index:10;backdrop-filter:blur(8px);
+    background:rgba(8,7,11,.72);border-bottom:1px solid var(--line);
+    padding:14px clamp(16px,4vw,40px)}
+  .picker h1{font-family:var(--sans);font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--parchment-faint);margin:0 0 10px;font-weight:700}
+  .opts{display:flex;flex-wrap:wrap;gap:8px}
+  .opt{appearance:none;cursor:pointer;font-family:var(--sans);font-weight:600;font-size:.82rem;
+    padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.02);
+    color:var(--parchment-dim);transition:all .18s var(--ease)}
+  .opt:hover{color:var(--parchment);border-color:rgba(201,162,75,.4)}
+  .opt[aria-pressed="true"]{background:rgba(201,162,75,.16);border-color:var(--gold);color:var(--gold-soft)}
+  .opt small{display:block;font-weight:500;font-size:.68rem;color:var(--parchment-faint);margin-top:1px}
+  .opt[aria-pressed="true"] small{color:var(--gold-soft);opacity:.8}
+
+  /* ---- mock ---- */
+  .stage{max-width:1040px;margin:0 auto;padding:clamp(28px,6vw,64px) clamp(18px,4vw,40px) 80px}
+  .hero{display:flex;justify-content:center;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:clamp(40px,7vw,72px)}
+  .deal{position:relative;appearance:none;border:none;cursor:pointer;
+    font-family:var(--serif);font-weight:600;font-size:1.15rem;letter-spacing:.04em;
+    color:var(--ink);padding:18px 46px;border-radius:14px;
+    background:linear-gradient(180deg,var(--gold-soft),var(--gold) 55%,var(--gold-deep));
+    box-shadow:0 8px 22px -12px rgba(201,162,75,.2), inset 0 1px 0 rgba(255,255,255,.5), inset 0 -2px 4px rgba(0,0,0,.25)}
+  .icon-btn{width:48px;height:48px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.02);
+    color:var(--parchment-dim);display:grid;place-items:center}
+  .icon-btn.heart{color:var(--gold-soft);border-color:rgba(201,162,75,.4)}
+  .icon-btn svg{width:21px;height:21px}
+
+  .result{display:grid;grid-template-columns:auto 1fr;gap:clamp(24px,4vw,48px);align-items:center}
+  @media(max-width:720px){.result{grid-template-columns:1fr;justify-items:center;text-align:center}}
+  .card-img{width:clamp(230px,30vw,300px);aspect-ratio:488/680;border-radius:4.6%/3.3%;
+    background:#1a1822;transform:rotate(-3deg);
+    box-shadow:0 30px 60px -18px rgba(0,0,0,.8), 0 0 0 1px rgba(0,0,0,.6);
+    display:grid;place-items:center;color:#5a5550;font-size:.8rem;text-align:center;padding:20px}
+  .type-line{font-size:.74rem;letter-spacing:.26em;text-transform:uppercase;color:var(--gold);
+    font-weight:600;margin-bottom:10px}
+  h2.name{font-family:var(--serif);font-weight:600;font-size:clamp(2rem,5vw,3.1rem);line-height:1.02;
+    margin:0 0 14px;letter-spacing:-.015em}
+  .ci-pip{width:24px;height:24px;border-radius:50%;display:inline-grid;place-items:center;
+    font-family:var(--serif);font-weight:700;font-size:.72rem;background:var(--r);color:#fff;margin-bottom:18px;
+    box-shadow:0 0 0 1px rgba(0,0,0,.4), inset 0 -2px 4px rgba(0,0,0,.3), inset 0 1px 2px rgba(255,255,255,.3)}
+  .oracle{color:var(--parchment-dim);font-size:.92rem;max-width:46ch;margin:0 0 22px}
+  @media(max-width:720px){.oracle{margin-left:auto;margin-right:auto}}
+  .actions{display:flex;flex-wrap:wrap;gap:12px}
+  @media(max-width:720px){.actions{justify-content:center}}
+  .btn{appearance:none;cursor:pointer;font-family:var(--sans);font-weight:600;font-size:.85rem;
+    padding:12px 20px;border-radius:11px;display:inline-flex;align-items:center;gap:9px}
+  .btn-primary{background:rgba(201,162,75,.14);border:1px solid var(--gold);color:var(--gold-soft)}
+  .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--parchment-dim)}
+  .note{color:var(--parchment-faint);font-size:.82rem;margin:22px 0 0}
+  .back{display:inline-block;margin-top:40px;color:var(--gold-soft);font-size:.85rem;text-decoration:none}
+  .back:hover{color:var(--gold)}
+</style>
+</head>
+<body>
+  <div class="picker">
+    <h1>Pick a font combo — tap to preview live</h1>
+    <div class="opts" id="opts"></div>
+  </div>
+
+  <div class="stage">
+    <div class="hero">
+      <button class="deal"><span style="display:inline-flex;align-items:center;gap:10px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+        Random Commander</span></button>
+      <button class="icon-btn" aria-label="Filters"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg></button>
+      <button class="icon-btn heart" aria-label="Saved"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+    </div>
+
+    <div class="result">
+      <div class="card-img">(commander art)</div>
+      <div class="meta">
+        <div class="type-line">Legendary Creature — Elder Dinosaur</div>
+        <h2 class="name">Etali, Primal Storm</h2>
+        <div class="ci-pip">R</div>
+        <p class="oracle">Whenever Etali attacks, exile the top card of each player's library, then you may cast any number of spells from among those cards without paying their mana costs.</p>
+        <div class="actions">
+          <button class="btn btn-primary">Show pairings</button>
+          <button class="btn btn-ghost">♡ Save</button>
+          <button class="btn btn-ghost">View on Scryfall ↗</button>
+          <button class="btn btn-ghost">EDHREC ↗</button>
+        </div>
+        <p class="note">Show cards that pair well with this commander.</p>
+      </div>
+    </div>
+
+    <a class="back" href="./">← Back to the app</a>
+  </div>
+
+<script>
+  const COMBOS = [
+    { id:"current",   label:"Current",            sub:"Fraunces · Hanken",   serif:'"Fraunces", Georgia, serif',          sans:'"Hanken Grotesk", system-ui, sans-serif' },
+    { id:"cinzel",    label:"Cinzel",             sub:"Cinzel · Inter",      serif:'"Cinzel", Georgia, serif',            sans:'"Inter", system-ui, sans-serif' },
+    { id:"playfair",  label:"Playfair Display",   sub:"Playfair · Inter",    serif:'"Playfair Display", Georgia, serif',  sans:'"Inter", system-ui, sans-serif' },
+    { id:"cormorant", label:"Cormorant Garamond", sub:"Cormorant · Jost",    serif:'"Cormorant Garamond", Georgia, serif',sans:'"Jost", system-ui, sans-serif' },
+    { id:"spectral",  label:"Spectral",           sub:"Spectral · Plex Sans",serif:'"Spectral", Georgia, serif',          sans:'"IBM Plex Sans", system-ui, sans-serif' },
+    { id:"marcellus", label:"Marcellus",          sub:"Marcellus · Mulish",  serif:'"Marcellus", Georgia, serif',         sans:'"Mulish", system-ui, sans-serif' },
+  ];
+  const opts = document.getElementById("opts");
+  function apply(c){
+    document.documentElement.style.setProperty("--serif", c.serif);
+    document.documentElement.style.setProperty("--sans", c.sans);
+    [...opts.children].forEach(b => b.setAttribute("aria-pressed", b.dataset.id === c.id));
+    try { history.replaceState(null, "", "?f=" + c.id); } catch(e){}
+  }
+  COMBOS.forEach(c => {
+    const b = document.createElement("button");
+    b.className = "opt"; b.dataset.id = c.id; b.setAttribute("aria-pressed","false");
+    b.innerHTML = c.label + "<small>" + c.sub + "</small>";
+    b.addEventListener("click", () => apply(c));
+    opts.appendChild(b);
+  });
+  const start = new URLSearchParams(location.search).get("f");
+  apply(COMBOS.find(c => c.id === start) || COMBOS[0]);
+</script>
+</body>
+</html>
