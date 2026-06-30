@@ -1,0 +1,10 @@
+{
+  // Cloudflare Worker config — serves the static site (index.html) as assets.
+  // The "name" must match your existing Worker (from the *.workers.dev subdomain).
+  "name": "randomcommander",
+  "compatibility_date": "2025-06-01",
+  "assets": {
+    "directory": ".",
+    "not_found_handling": "single-page-application"
+  }
+}

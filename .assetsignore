@@ -1,0 +1,7 @@
+# Files in the repo root that should NOT be served as part of the public site.
+README.md
+TODO.md
+supabase-setup.sql
+wrangler.jsonc
+.assetsignore
+.gitignore
