@@ -175,8 +175,8 @@
   .subpicker .chip{font-size:.78rem;padding:6px 12px}
 
   /* ---------- deal button ---------- */
-  .deal-zone{display:flex;justify-content:center;margin:clamp(40px,9vw,90px) 0 8px;
-    transition:margin-top .65s var(--ease)}
+  .deal-zone{display:flex;justify-content:center;align-items:center;gap:clamp(10px,1.6vw,16px);
+    flex-wrap:wrap;margin:clamp(40px,9vw,90px) 0 8px;transition:margin-top .65s var(--ease)}
   .wrap.predeal .deal-zone{margin-top:34vh}
   .deal{
     position:relative;appearance:none;border:none;cursor:pointer;
@@ -208,27 +208,26 @@
 
   .hint{text-align:center;color:var(--parchment-faint);font-size:.8rem;margin-top:14px;letter-spacing:.02em}
 
-  /* ---------- refine toggle + collapsible console ---------- */
-  .refine-row{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:20px;flex-wrap:wrap}
-  .saved-pill{appearance:none;background:rgba(255,255,255,.02);border:1px solid rgba(201,162,75,.4);
-    color:var(--gold-soft);font-family:var(--sans);font-size:.8rem;font-weight:600;letter-spacing:.02em;
-    padding:9px 16px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
-    transition:all .2s var(--ease)}
-  .saved-pill:hover{color:var(--gold);border-color:var(--gold);background:rgba(201,162,75,.1)}
-  .saved-pill:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
-  .refine{appearance:none;background:rgba(255,255,255,.02);border:1px solid var(--line);
-    color:var(--parchment-dim);font-family:var(--sans);font-size:.8rem;font-weight:600;
-    letter-spacing:.02em;padding:9px 8px 9px 16px;border-radius:999px;cursor:pointer;
-    display:inline-flex;align-items:center;gap:11px;transition:all .2s var(--ease);max-width:100%}
-  .refine:hover{color:var(--parchment);border-color:rgba(201,162,75,.4)}
-  .refine:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
-  .refine .r-label{color:var(--gold-soft);letter-spacing:.16em;text-transform:uppercase;font-size:.7rem}
-  .refine .r-summary{color:var(--parchment-faint);border-left:1px solid var(--line);padding-left:11px;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .refine .caret{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;
-    background:rgba(201,162,75,.12);color:var(--gold);font-size:.7rem;flex:none;
-    transition:transform .3s var(--ease)}
-  .refine[aria-expanded="true"] .caret{transform:rotate(180deg)}
+  /* ---------- hero action icons (filters + saved) + collapsible console ---------- */
+  .hero-actions{display:flex;align-items:center;gap:10px}
+  .icon-btn{position:relative;appearance:none;width:48px;height:48px;border-radius:50%;flex:none;
+    border:1px solid var(--line);background:rgba(255,255,255,.02);color:var(--parchment-dim);
+    display:grid;place-items:center;cursor:pointer;
+    transition:color .2s var(--ease),border-color .2s var(--ease),background .2s var(--ease),transform .18s var(--ease)}
+  .icon-btn svg{width:21px;height:21px}
+  .icon-btn:hover{color:var(--parchment);border-color:rgba(201,162,75,.4);background:rgba(201,162,75,.08);transform:translateY(-2px)}
+  .icon-btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  #savedBtn{color:var(--gold-soft);border-color:rgba(201,162,75,.4)}
+  #savedBtn:hover{color:var(--gold);border-color:var(--gold)}
+  /* filters icon shows an active state while the console is open */
+  .icon-btn[aria-expanded="true"]{color:var(--gold-soft);border-color:var(--gold);background:rgba(201,162,75,.14)}
+  /* a small dot marks that non-default filters are applied */
+  #refineBtn.has-filters::after{content:"";position:absolute;top:-2px;right:-2px;width:9px;height:9px;border-radius:50%;
+    background:var(--gold);box-shadow:0 0 0 2px var(--void)}
+  .icon-badge{position:absolute;top:-3px;right:-3px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;
+    background:var(--gold);color:#1a1408;font-size:.66rem;font-weight:700;line-height:1;
+    display:grid;place-items:center;box-shadow:0 0 0 2px var(--void)}
+  .icon-badge[hidden]{display:none}
 
   .console-wrap{display:grid;grid-template-rows:0fr;transition:grid-template-rows .42s var(--ease)}
   .console-wrap.open{grid-template-rows:1fr}
@@ -444,17 +443,17 @@
         <span class="lbl"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg> Random Commander</span>
         <span class="spinner" aria-hidden="true"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>
       </button>
+      <div class="hero-actions">
+        <button class="icon-btn" id="refineBtn" aria-expanded="false" aria-controls="consoleWrap" aria-label="Filters" title="Filters">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        </button>
+        <button class="icon-btn" id="savedBtn" aria-haspopup="dialog" aria-label="Saved commanders" title="Saved commanders">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          <span class="icon-badge" id="savedCount" hidden>0</span>
+        </button>
+      </div>
     </div>
     <p class="hint" id="hint"></p>
-
-    <div class="refine-row">
-      <button class="refine" id="refineBtn" aria-expanded="false" aria-controls="consoleWrap">
-        <span class="r-label">Refine</span>
-        <span class="r-summary" id="refineSummary">Any colors · Surprise me · Any theme</span>
-        <span class="caret" aria-hidden="true">▾</span>
-      </button>
-      <button class="saved-pill" id="savedBtn" aria-haspopup="dialog">♥ Saved <span id="savedCount">(0)</span></button>
-    </div>
 
     <!-- ============ FILTER CONSOLE (collapsible) ============ -->
     <div class="console-wrap" id="consoleWrap">
@@ -856,7 +855,11 @@
     if (state.format !== "commander") extra.push("Brawl");
     if (state.partners) extra.push("Partners");
     const tail = extra.length ? " · " + extra.join(" · ") : "";
-    $("#refineSummary").textContent = `${colorTxt} · ${POWER_SUMMARY[state.power]} · ${themeTxt}${tail}`;
+    // The visible summary was dropped when Refine became an icon; mark when any non-default
+    // filter is active so the icon can show a subtle "active" dot.
+    const isDefault = colorTxt === "Any colors" && state.power === "any" && themeTxt === "Any theme" && !tail;
+    const rb = $("#refineBtn");
+    if (rb) rb.classList.toggle("has-filters", !isDefault);
   }
   updateSummary();
 
@@ -1229,7 +1232,7 @@
   const drawerOverlay = $("#drawerOverlay"), drawerBody = $("#drawerBody"), drawerClose = $("#drawerClose");
   const smooth = () => matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
 
-  function updateSavedCount(){ savedCountEl.textContent = `(${loadSaved().length})`; }
+  function updateSavedCount(){ const n = loadSaved().length; savedCountEl.textContent = n; savedCountEl.hidden = n === 0; }
   // Prev/Next are rendered inline with the card (their enabled state is set in renderCommander);
   // this only keeps the Saved pill's count current. Named refreshHistBar for its existing callers.
   function refreshHistBar(){ updateSavedCount(); }
